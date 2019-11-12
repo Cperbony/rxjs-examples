@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <script src="https://unpkg.com/@reactivex/rxjs@6.3.3/dist/global/rxjs.umd.js"></script>
+    <title>Concorrência</title>
+</head>
+<body>
+
+<script>
+    const {
+        fromEvent,
+        ajax: {ajax},
+        of
+    } = rxjs;
+
+    const {
+        pluck,
+        map,
+        debounceTime,
+        switchMap,
+        catchError,
+        distinctUntilChanged,
+        startWith,
+        mergeMap,
+        concatMap,
+        exhaustMap
+    } = rxjs.operators;
+
+    const api = (response, delay) =>
+        ajax({
+            url: `http://127.0.0.1:5200/response/${JSON.stringify(response)}/delay/${delay}/`
+        });
+
+    const a = api({data: "A"}, 1000);
+    const b = api({data: "B"}, 1000);
+    const c = api({data: "C"}, 800);
+    const d = api({data: "D"}, 1800);
+    const e = api({data: "H"}, 1200);
+    const f = api({data: "I"}, 1600);
+    const g = api({data: "J"}, 2800);
+    const h = api({data: "K"}, 700);
+
+    of(a, b, c, d, e, f, g, h)
+        .pipe(
+            // Como uma Promise, com um then() dentro
+            // retorna como um subscribe inscrito
+            mergeMap(e => e),
+            pluck('response', 'data'),
+        )
+        .subscribe(
+            x => console.log(x),
+            err => console.log(err),
+            _ => console.log("Complete")
+        );
+</script>
+</body>
+</html>

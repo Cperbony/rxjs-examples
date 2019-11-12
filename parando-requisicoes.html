@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <script src="https://unpkg.com/@reactivex/rxjs@6.3.3/dist/global/rxjs.umd.js"></script>
+    <title>Parando requisições</title>
+</head>
+<body>
+<script>
+    const {
+        of,
+        ajax: { ajax }
+    } = rxjs;
+    const { filter, mergeMap, pluck, concatMap, switchMap, exhaustMap, combineAll, catchError, map } = rxjs.operators;
+
+    const api2 = (response, delay) =>
+        ajax({
+            url: `http://127.0.0.1:5200/response/${JSON.stringify(
+                response
+            )}/delay/${delay}/`
+        });
+
+    const a = api(1);
+    const b = api(2);
+    const c = api(3);
+    const d = api(4000); // Esta request vai dar erro
+    const e = api(5);
+    const f = api(6);
+    const g = api(7);
+    const h = api(8);
+
+    of(a, b, c, d, e, f, g, h)
+        .pipe(
+            mergeMap(e => e.pipe(
+                // catch em cada uma das requisições
+                catchError(e => {
+                    console.error('error', e);
+                    // no caso de erro ele retorna um Observable(false)
+                    return of(false);
+                })
+            )),
+            // filtra os que não sao false
+            filter(e => e),
+            // continua só com as requisicoes que funcionaram
+            pluck('response'),
+            // Transforma todos os valores em observables para combina-los em um unico array
+            map(e => of(e)),
+            combineAll(),
+        )
+        .subscribe(
+            x => console.log(x),
+            err => console.log(err),
+            _ => console.log("Complete")
+        );
+</script>
+</body>
+</html>
